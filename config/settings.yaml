@@ -1,0 +1,570 @@
+# =============================================================================
+# Market Screener — Master Configuration
+#
+# This file is the ONLY place you should need to edit to change how the
+# screener behaves. Every threshold, list, and on/off switch used anywhere
+# in the code is read from here — nothing is hard-coded in the Python.
+#
+# --- Sections at a glance ----------------------------------------------------
+#   universe / data / filters / ranking / output   -> the DEFAULTS every
+#     profile below inherits unless it explicitly overrides that section.
+#   profiles                                        -> named screens
+#     (momentum_screen, pullback_screen, breakout_watch, ...). Each one only
+#     needs to list what's *different* from the defaults above.
+#
+# --- Running it ---------------------------------------------------------------
+#   python main.py momentum_screen     -> run just that profile
+#   python main.py all                 -> run every profile, one combined report
+#   python main.py                     -> same as "all" (the default)
+#
+# To make the screener "yours": edit the ticker list, tweak the defaults
+# below, and/or add your own profile under `profiles` — see the comment
+# above the `profiles:` section for exactly how to clone and tune one.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# UNIVERSE — which symbols get screened (shared by every profile unless a
+# profile explicitly overrides its own `universe:` block)
+# -----------------------------------------------------------------------------
+universe:
+  # Where the ticker list comes from.
+  #   static_list -> use the `tickers` list below verbatim.
+  # (Future sources, e.g. "sp500_index", can be added in data/universe.py
+  #  without touching any other file.)
+  source: static_list
+
+  # Example starter universe (a small slice of well-known large caps, not the
+  # full S&P 500). Replace with your own watchlist / index constituents.
+  tickers:
+    - AAPL
+    - MSFT
+    - AMZN
+    - GOOGL
+    - NVDA
+    - META
+    - TSLA
+    - JPM
+    - V
+    - UNH
+
+# -----------------------------------------------------------------------------
+# DATA — where OHLCV bars come from and how much history to pull
+# -----------------------------------------------------------------------------
+data:
+  # Data provider. Currently supported: "yfinance" (free, no API key).
+  # Swap in your own provider by adding a fetcher class in data/fetcher.py
+  # and pointing this at it.
+  provider: yfinance
+
+  # Bar size to request from the provider.
+  interval: "1d"
+
+  # How many calendar days of history to request per symbol. Must be large
+  # enough to cover the longest lookback used by any enabled filter or
+  # ranking factor below (e.g. a 200-day SMA needs > 200 days of bars).
+  lookback_days: 400
+
+  # --- Point-in-time control -------------------------------------------------
+  # The date the screener evaluates "as of". No bar after this date is ever
+  # seen by filters or ranking — this is what prevents look-ahead bias.
+  #   null            -> use the most recent available trading day (today).
+  #   "YYYY-MM-DD"    -> pin evaluation to a specific historical date, useful
+  #                      for backtesting "what would this screen have shown
+  #                      on that day".
+  evaluation_date: null
+
+  # Simple on-disk cache of raw downloads, keyed by symbol, so re-running the
+  # screener the same day doesn't re-hit the network for every ticker.
+  use_cache: true
+  cache_dir: "data/.cache"
+
+  # Per-request network timeout (seconds) when calling the data provider.
+  request_timeout_seconds: 30
+
+# -----------------------------------------------------------------------------
+# DATA QUALITY — a sanity check that runs before screening, per symbol, on
+# the same point-in-time data the filters see (see data/quality.py). A
+# symbol that fails this is excluded outright — no filter ever runs on it —
+# and the report shows exactly why under a "data_quality" reason, the same
+# way any other filter failure is shown. This is not a filter (it's not in
+# `filters:` above and isn't part of any ranking weight) — it's a guardrail
+# that runs first, because a filter has no way to tell "real 80% gap on
+# news" from "the provider returned garbage for this symbol".
+# -----------------------------------------------------------------------------
+data_quality:
+  enabled: true
+
+  # Most recent bar older than this many days before the evaluation date ->
+  # flagged as stale (a halted, delisted, or mis-fetched symbol).
+  max_staleness_days: 5
+
+  # A gap of more than this many calendar days between two consecutive
+  # bars -> flagged (a normal weekend is 2-3 days; a long holiday weekend
+  # is at most 4 — this catches missing history, not routine closures).
+  max_gap_days: 5
+
+  # A single day's |% change| in Close beyond this -> flagged as a
+  # suspicious price. Also always flags non-positive prices and any bar
+  # where High < Low, regardless of this threshold.
+  max_daily_move_pct: 50.0
+
+# -----------------------------------------------------------------------------
+# FILTERS — pass/fail screens every symbol must clear to become a candidate
+#
+# These are the DEFAULTS: only liquidity and price_range are on here, as a
+# shared sanity baseline every profile inherits (reject illiquid names and
+# penny stocks) before its own filters run. Every other filter is defined
+# but switched off — a profile turns one on and tunes only the fields it
+# cares about; everything it doesn't mention is inherited from here.
+# -----------------------------------------------------------------------------
+# Every filter below is switched on/off independently with its own
+# `enabled: true/false` — there's no separate master list to keep in sync.
+# Filters run in the order they appear in this file. Each block's key
+# (e.g. `liquidity`) must match a name registered in
+# filters/library.py's FILTER_REGISTRY.
+filters:
+
+  # --- LiquidityFilter: reject thinly-traded symbols --------------------------
+  # Average daily dollar volume (close * volume) or raw share volume over a
+  # trailing window must clear a floor. Dollar volume is the more common
+  # choice since it's comparable across symbols at very different prices.
+  liquidity:
+    enabled: true
+    metric: dollar_volume        # "dollar_volume" or "share_volume"
+    lookback_days: 20            # trading days to average over
+    min_value: 10000000          # floor ($ for dollar_volume, shares for share_volume)
+
+  # --- PriceRangeFilter: keep price within a band -----------------------------
+  # Excludes penny stocks and, optionally, symbols trading "too expensive"
+  # for the strategy. Set either bound to null to leave that side unbounded.
+  price_range:
+    enabled: true
+    min_price: 5.00               # last close must be >= this ($), or null
+    max_price: null                # last close must be <= this ($), or null
+
+  # --- TrendFilter: price vs. its own moving average --------------------------
+  # Requires the last close to be above (or below) an N-day SMA, and
+  # optionally requires that SMA itself to be rising (or falling) — e.g.
+  # "only uptrends where the trend is still accelerating". Off by default;
+  # momentum_screen and pullback_screen below each turn it on with very
+  # different `period`s.
+  trend:
+    enabled: false
+    period: 50                    # SMA length (trading days)
+    direction: above               # "above" or "below" the SMA
+    require_slope: none            # "none", "rising", or "falling"
+    slope_lookback_days: 5         # compare today's SMA to this many days ago
+
+  # --- MomentumFilter: return over a lookback, absolute or vs. a benchmark ---
+  # Off by default — flip `enabled: true` to use it as a pure momentum gate,
+  # or set `benchmark_symbol` to screen for relative strength/weakness vs.
+  # an index instead of absolute return.
+  momentum:
+    enabled: false
+    lookback_days: 63              # ~1 trading quarter
+    direction: above                # "above" or "below" the threshold
+    threshold: 0.0                  # fractional return, e.g. 0.05 = +5%
+    benchmark_symbol: null          # e.g. "SPY" for return relative to the
+                                     # benchmark's own return; null = absolute
+
+  # --- ProximityFilter: near a high/low/MA, for breakout & pullback screens --
+  # Off by default — breakout_watch below uses reference: high for "near a
+  # breakout"; pullback_screen uses reference: sma for "near support".
+  proximity:
+    enabled: false
+    reference: high                 # "high", "low", or "sma"
+    lookback_days: 20               # window for high/low (ignored for "sma")
+    sma_period: 50                  # MA length (used only when reference: sma)
+    max_distance_pct: 3.0           # allowed distance from the reference, in %
+    side: at_or_above               # "any", "at_or_above", or "at_or_below"
+
+  # --- VolatilityFilter: keep volatility within a band ------------------------
+  # "atr" = Average True Range as a % of price; "realized_vol" = annualized
+  # stdev of daily returns, as a %. Use to exclude both dead stocks (too low)
+  # and erratic ones (too high) from a screen. Off by default.
+  volatility:
+    enabled: false
+    metric: atr                     # "atr" or "realized_vol"
+    lookback_days: 14
+    min_value: null                 # lower band, or null for no lower bound
+    max_value: 6.0                  # upper band, or null for no upper bound
+
+  # --- VolumeSurgeFilter: today's volume vs. its own trailing average --------
+  # `direction: above` (a floor) screens for a surge — unusual activity, e.g.
+  # a breakout confirmation. `direction: below` (a ceiling on the same
+  # multiple) screens for volume drying up — the "quiet before the move"
+  # pattern breakout_watch uses. Off by default.
+  volume_surge:
+    enabled: false
+    avg_lookback_days: 20           # trailing window for the "normal" average
+    direction: above                # "above" (surge) or "below" (drying up)
+    threshold_multiple: 2.0         # today's volume must be >= (or <=) this x the average
+
+  # --- GapFilter: exclude symbols around known events (e.g. earnings) --------
+  # No live events feed is wired up in this scaffold. `event_dates` is a
+  # hand-curated calendar (symbol -> list of "YYYY-MM-DD" dates); a symbol
+  # is excluded if the evaluation date falls within `exclusion_days` of any
+  # listed date for it. `excluded_symbols` is a simple always-exclude list.
+  # Off by default; any profile can turn it on to avoid screening straight
+  # into an earnings print.
+  gap_event:
+    enabled: false
+    exclusion_days: 3
+    excluded_symbols: []            # e.g. ["GME"] to always exclude a ticker
+    event_dates: {}                 # e.g. {"AAPL": ["2025-01-30", "2025-04-30"]}
+
+# -----------------------------------------------------------------------------
+# RANKING — how surviving (passing) symbols are scored and sorted (defaults;
+# every profile below defines its own weights suited to what it screens for)
+# -----------------------------------------------------------------------------
+# Ranking only ever orders symbols that already passed every enabled filter
+# above — it never excludes anyone by itself (that's what `min_score` below
+# is for). Not every filter has something to say about ranking (a price
+# range or blacklist is binary), but four of them expose a continuous
+# "how good was this" score component that feeds into the composite:
+#   momentum      -> MomentumFilter's return strength (oriented by `direction`)
+#   trend         -> TrendFilter's % distance from its MA (oriented by `direction`)
+#   volume_surge  -> VolumeSurgeFilter's surge/dry-up multiple (oriented by `direction`)
+#   proximity     -> ProximityFilter's closeness to the reference level
+#
+# Each named component is min-max normalized to [0, 1] across the survivor
+# set (so components on very different scales, like a % return and a volume
+# multiple, combine fairly), then combined using the weights below. Weights
+# don't need to sum to 1 — only their relative sizes matter, they're
+# renormalized automatically. A weight for a filter that's disabled, or one
+# with no score component (e.g. liquidity, price_range, volatility,
+# gap_event), is simply ignored rather than distorting the score. Since a
+# profile's `ranking.weights` is deep-merged onto this default dict just
+# like everything else, set an inherited weight to 0 explicitly if a
+# profile wants to drop it rather than just omitting it.
+ranking:
+  weights:
+    momentum: 0.4
+    trend: 0.3
+    volume_surge: 0.2
+    proximity: 0.1
+
+  # Keep only the top N survivors by composite score. Use null to keep
+  # every survivor that clears min_score below.
+  top_n: 20
+
+  # Composite scores are normalized into [0, 1]. Anything scoring below
+  # this is dropped from the output entirely — on a weak day, that can mean
+  # an empty watchlist rather than forcing out low-quality picks just to
+  # fill a list. Use null for no floor.
+  min_score: null
+
+# -----------------------------------------------------------------------------
+# OUTPUT — how the final watchlist is reported (default; each profile below
+# overrides csv_path so running one profile alone never clobbers another's
+# file. Running `all` uses this default path for the one combined report.)
+# -----------------------------------------------------------------------------
+output:
+  # Any combination of: "console", "csv"
+  formats:
+    - console
+    - csv
+
+  csv_path: "output/watchlist.csv"
+
+  # Include each symbol's per-filter pass/fail reasons in the report so
+  # results stay explainable (why did X pass, why did Y get dropped).
+  show_filter_reasons: true
+
+  # Columns to print in the console table (CSV always includes everything).
+  console_columns:
+    - symbol
+    - score
+    - close
+    - passed
+
+  # Every run also saves a timestamped copy of its report here, building a
+  # day-over-day archive of what the screen said (see DEPLOYMENT.md). Set
+  # save_history: false to skip this (e.g. for quick ad hoc local runs).
+  save_history: true
+  history_dir: "output/history"
+
+  # A self-contained HTML dashboard (see output/dashboard.py) is
+  # regenerated here at the end of every run — open it in any browser,
+  # no server needed. It reads today's results plus `history_dir` above,
+  # so save_history must stay on for the "changes since last run" and
+  # "recent history" sections to have anything to compare against.
+  dashboard_path: "output/dashboard.html"
+  dashboard_recent_runs: 10          # how many past runs the history view shows, per profile
+  dashboard_big_move_threshold: 3    # rank change (positions) flagged as a "big move"
+
+# =============================================================================
+# SCHEDULE — when the screener runs itself automatically. Shared by both
+# deployment modes described in DEPLOYMENT.md:
+#   python main.py schedule        -> mode (a): always-on loop
+#   python main.py scheduled-run   -> mode (b): one-shot check, used by
+#                                      .github/workflows/screener.yml
+# =============================================================================
+schedule:
+  # IANA timezone name (stdlib zoneinfo, no extra dependency) that
+  # market_open/market_close and every offset below are interpreted in.
+  # NYSE/Nasdaq -> America/New_York (handles the EDT/EST switch itself).
+  timezone: "America/New_York"
+  market_open: "09:30"
+  market_close: "16:00"
+
+  # Skips Saturday/Sunday automatically. Exchange holidays are NOT
+  # inferred from any calendar (no such dependency is wired in) — list any
+  # you want the schedule to skip below, "YYYY-MM-DD".
+  weekdays_only: true
+  holidays: []             # e.g. ["2026-01-01", "2026-11-26", "2026-12-25"]
+
+  # Each entry fires `profile` at `offset_minutes` relative to `anchor`
+  # ("market_open" or "market_close"). Add, remove, or retime entries here
+  # — no code changes needed, and each can run a different profile.
+  run_times:
+    - name: pre_open
+      anchor: market_open
+      offset_minutes: -30    # 30 minutes before the open
+      profile: all
+    - name: post_close
+      anchor: market_close
+      offset_minutes: 30     # 30 minutes after the close
+      profile: all
+
+  # --- Mode (a) only: how often the always-on loop checks the clock ----------
+  poll_interval_seconds: 30
+
+  # --- Mode (b) only: GitHub Actions cron is UTC-only and can't express ------
+  # "30 minutes before the NYSE open" directly, so the workflow fires a
+  # little early/late around the actual DST-aware target (see the comment
+  # in .github/workflows/screener.yml). This process then decides for
+  # itself whether a run_time is *genuinely* due, within this many minutes
+  # of its scheduled time — anything outside that window is a no-op, not a
+  # run, so the same run never fires twice from nearby cron triggers.
+  trigger_tolerance_minutes: 20
+
+# -----------------------------------------------------------------------------
+# LOGGING — diagnostics (scheduler activity, fetch failures) as opposed to
+# the report itself. A failed data fetch is always logged here (see
+# data/fetcher.py) rather than crashing silently.
+# -----------------------------------------------------------------------------
+logging:
+  level: INFO
+  file: "output/screener.log"   # null = console (stderr) only
+
+# =============================================================================
+# ALERTS — get pinged when something in a run is worth noticing, instead of
+# only finding out next time you open the dashboard. Rules are evaluated
+# against every profile that ran this time; delivery is one batched digest
+# per channel per run, not one notification per alert.
+# =============================================================================
+alerts:
+  enabled: false        # master switch -- every rule/channel below is inert until this is true
+
+  # Prints the exact digest that would be sent, to the console and the
+  # log, and never actually calls a channel. This is how you test rules
+  # and channel setup without spamming yourself or anyone else — leave it
+  # on until you've confirmed a run's alerts look right. Override without
+  # touching this file: SCREENER_ALERTS_DRY_RUN=1 python main.py all
+  # (SCREENER_ALERTS_DRY_RUN=0 forces it off, overriding a `true` here).
+  dry_run: true
+
+  # A blanket "do not disturb": rules still evaluate and get logged, but
+  # nothing is actually sent to any channel. Independent of dry_run —
+  # quiet suppresses real delivery; dry_run redirects it to the console.
+  quiet: false
+
+  # Hard ceiling on alerts actually delivered in one run. A broad market
+  # move can trip a dozen rules across every profile at once; past this
+  # many, the digest is truncated with a "N more suppressed" note instead
+  # of flooding the channel.
+  max_alerts_per_run: 10
+
+  # Where the digest points people for full detail. Leave null to use the
+  # local dashboard file path (output.dashboard_path above) — set this if
+  # you publish the dashboard somewhere reachable (e.g. GitHub Pages) so a
+  # phone notification's link actually opens something.
+  dashboard_url: null
+
+  # --- Rules: each is independently enabled and parameterized -----------------
+  rules:
+    # Fires when a symbol newly enters a profile's top N — it wasn't in
+    # the top N last run (or there was no previous run at all).
+    new_top_n:
+      enabled: true
+      n: 5
+
+    # Fires when a symbol's composite score *crosses* threshold: at/above
+    # it now, but wasn't last run. Staying above it every run after that
+    # alerts only once, at the crossing — not every single run.
+    score_threshold:
+      enabled: true
+      threshold: 0.85
+
+    # Fires every run a symbol from `symbols` survives all filters in any
+    # profile. Unlike the two rules above this is NOT gated on "new" —
+    # a watchlist is a short, hand-picked "always tell me" list, so it
+    # alerts every time, by design. Pair with quiet mode if a name sits on
+    # it for many consecutive runs and the repetition becomes noise.
+    watchlist:
+      enabled: true
+      symbols: []              # e.g. ["NVDA", "TSLA"]
+
+  # --- Delivery channels -------------------------------------------------------
+  # Enable one, two, or all three. Secrets are NEVER written here — only
+  # the *name* of the environment variable holding each secret. Set the
+  # actual values in your shell, a .env file your process loads, or (for
+  # GitHub Actions) the repo's Settings -> Secrets and variables -> Actions
+  # -> New repository secret, then reference them the same way under
+  # `env:` in .github/workflows/screener.yml.
+  channels:
+    - type: discord
+      enabled: false
+      # Create one via a Discord channel's Settings -> Integrations -> Webhooks.
+      webhook_url_env: DISCORD_WEBHOOK_URL
+
+    - type: telegram
+      enabled: false
+      # Create a bot via @BotFather to get a token; message the bot once,
+      # then call https://api.telegram.org/bot<token>/getUpdates to find
+      # your chat_id.
+      bot_token_env: TELEGRAM_BOT_TOKEN
+      chat_id_env: TELEGRAM_CHAT_ID
+
+    - type: email
+      enabled: false
+      smtp_host: "smtp.gmail.com"
+      smtp_port: 587
+      from_address: "screener@example.com"
+      to_addresses:
+        - "you@example.com"
+      username_env: SMTP_USERNAME
+      password_env: SMTP_PASSWORD   # for Gmail: an App Password, not your login password
+
+# =============================================================================
+# PROFILES — named screens, each a partial override of the defaults above
+# =============================================================================
+# A profile only needs to list what's *different* from universe/data/
+# filters/ranking/output above — everything it doesn't mention (the ticker
+# list, the liquidity floor, a filter parameter it doesn't touch) is
+# inherited unchanged. Overrides merge field-by-field, not block-by-block:
+# a profile can change one setting inside one filter (e.g. just `period`
+# inside `trend`) and every sibling setting (`direction`, `require_slope`,
+# ...) still comes from the default above.
+#
+# --- How to clone a profile and make it your own -----------------------------
+#   1. Copy one of the three blocks below (pick whichever is closest to
+#      what you want) and give the copy a new key, e.g. `my_screen:`.
+#   2. Under its `filters:`, flip on whatever you need and tune only the
+#      fields that matter to you — delete the rest of that filter's block
+#      and it'll inherit from the top-level `filters:` defaults above.
+#   3. Under its `ranking:`, set `weights` for whichever filters you turned
+#      on that have a score component (momentum, trend, volume_surge,
+#      proximity — see the RANKING comment above). Set `top_n`/`min_score`
+#      if you want different ones than the default.
+#   4. (Optional) give it its own `output.csv_path` so it doesn't overwrite
+#      another profile's file.
+#   5. Run it: `python main.py my_screen`. That's it — no code changes.
+#
+# Run a single profile with `python main.py <name>`, or every profile at
+# once (one combined report, grouped by profile) with `python main.py all`
+# — "all" is also what runs if you don't pass a profile name at all.
+profiles:
+
+  # --- Momentum screen: trend + momentum + volume confirmation ---------------
+  # The classic "strength begets strength" screen: an accelerating
+  # intermediate-term uptrend, a strong recent return, and above-normal
+  # volume confirming the move is for real. Inherits the universe and the
+  # liquidity/price_range baseline untouched.
+  momentum_screen:
+    filters:
+      trend:
+        enabled: true
+        period: 50
+        direction: above
+        require_slope: rising      # only uptrends that are still accelerating
+        slope_lookback_days: 10
+      momentum:
+        enabled: true
+        lookback_days: 63          # ~1 trading quarter
+        direction: above
+        threshold: 0.03            # must be up at least 3% over the quarter
+        benchmark_symbol: null     # set to e.g. "SPY" to require relative strength instead
+      volume_surge:
+        enabled: true
+        avg_lookback_days: 20
+        direction: above
+        threshold_multiple: 1.0    # at least normal volume - confirms the move isn't on thinning interest
+    ranking:
+      weights:
+        momentum: 0.5
+        trend: 0.3
+        volume_surge: 0.2
+      top_n: 15
+    output:
+      csv_path: "output/momentum_screen.csv"
+
+  # --- Pullback / mean-reversion screen ---------------------------------------
+  # "Buy the dip": still solidly above its *long-term* trend, but has
+  # weakened over the *short* term and is now sitting right at support.
+  # Note `trend.period: 200` here vs. the 50-day default above — a profile
+  # overriding just one field of a shared filter, not only toggling it.
+  pullback_screen:
+    filters:
+      trend:
+        enabled: true
+        period: 200                 # long-term trend filter, not the 50-day default
+        direction: above
+        require_slope: none
+      momentum:
+        enabled: true
+        lookback_days: 10           # short lookback -> short-term weakness
+        direction: below
+        threshold: 0.0              # must be flat-to-down over the last two weeks
+        benchmark_symbol: null
+      proximity:
+        enabled: true
+        reference: sma
+        sma_period: 20              # "support" = the 20-day average
+        max_distance_pct: 3.0
+        side: any
+    ranking:
+      weights:
+        proximity: 0.4              # closest to support wins
+        momentum: 0.35              # weakest short-term return wins (direction: below already inverts the sign)
+        trend: 0.25                 # stronger long-term uptrend breaks ties
+      top_n: 15
+    output:
+      csv_path: "output/pullback_screen.csv"
+
+  # --- Breakout watch ----------------------------------------------------------
+  # Pre-breakout watchlist: coiled in a tight range right under (or just
+  # over) its recent high, with volume drying up — the "quiet before the
+  # move" setup. Explicitly disables `trend`: a breakout candidate doesn't
+  # need a pre-existing trend, so this profile turns it off rather than
+  # tuning it — proof that overriding to `enabled: false` is just as valid
+  # a profile override as turning something on.
+  breakout_watch:
+    filters:
+      trend:
+        enabled: false
+      volatility:
+        enabled: true
+        metric: atr
+        lookback_days: 14
+        min_value: null
+        max_value: 3.0              # tight range: 14-day ATR under 3% of price
+      proximity:
+        enabled: true
+        reference: high
+        lookback_days: 20
+        max_distance_pct: 3.0
+        side: any                   # "watch" = approaching the high, not necessarily through it yet
+      volume_surge:
+        enabled: true
+        avg_lookback_days: 20
+        direction: below            # the "drying up" half of VolumeSurgeFilter
+        threshold_multiple: 0.9     # no more than 90% of normal volume
+    ranking:
+      weights:
+        proximity: 0.6              # closest to (or above) the high wins
+        volume_surge: 0.4           # most contracted volume wins (direction: below already inverts the sign)
+      top_n: 15
+    output:
+      csv_path: "output/breakout_watch.csv"

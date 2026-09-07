@@ -1,0 +1,67 @@
+name: Scheduled Screener
+
+# GitHub Actions cron is UTC-only and has no concept of America/New_York or
+# DST, so it can't literally express "30 minutes before the NYSE open".
+# Instead, each of the screener's two run times gets *two* cron triggers,
+# one tuned for EDT (UTC-4) and one for EST (UTC-5) — an hour apart, which
+# safely brackets the one-hour DST swing. `python main.py scheduled-run`
+# then does the real, timezone- and market-day-aware check (see
+# scheduler.py) and cleanly no-ops on whichever trigger doesn't actually
+# correspond to a scheduled time right now — see `trigger_tolerance_minutes`
+# in config/settings.yaml. Exchange holidays are also handled there
+# (`schedule.holidays`), so a cron firing on e.g. July 4th still no-ops.
+on:
+  schedule:
+    # Pre-open: ~09:00 America/New_York (30 min before the 09:30 open).
+    - cron: '0 13 * * 1-5'   # ~09:00 ET while EDT is in effect (UTC-4)
+    - cron: '0 14 * * 1-5'   # ~09:00 ET while EST is in effect (UTC-5)
+    # Post-close: ~16:30 America/New_York (30 min after the 16:00 close).
+    - cron: '30 20 * * 1-5'  # ~16:30 ET while EDT is in effect (UTC-4)
+    - cron: '30 21 * * 1-5'  # ~16:30 ET while EST is in effect (UTC-5)
+  workflow_dispatch: {}      # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write            # needed to commit the report back to the repo
+
+jobs:
+  run-screener:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run screener (no-ops if nothing is actually due right now)
+        id: screener
+        continue-on-error: true
+        # Only the secrets for whichever alert channel(s) you enabled in
+        # config/settings.yaml need to actually be set — add them under
+        # this repo's Settings -> Secrets and variables -> Actions, using
+        # the same names referenced by *_env in settings.yaml. An unset
+        # one is skipped with a clear log line, not a failure.
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python main.py scheduled-run
+
+      - name: Commit and push report history
+        run: |
+          git config user.name "screener-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add output/history output/*.csv
+          git diff --cached --quiet || git commit -m "Automated screener report ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git push
+
+      - name: Fail the job if the screener run errored
+        if: steps.screener.outcome == 'failure'
+        run: exit 1
