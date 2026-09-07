@@ -159,10 +159,154 @@
 </head>
 <body>
 <h1>Screener Dashboard</h1>
-<div class="meta">No automated run yet.</div>
-<section class="card">
-  <p class="muted">This page publishes the latest run of the screener automatically (see .github/workflows/screener.yml). It updates the first time the scheduled workflow actually fires during market hours (weekdays, ~30 min before the open and ~30 min after the close, America/New_York) &mdash; check back after that, or trigger a run manually from the repo's Actions tab.</p>
-</section>
+<div class="meta">Generated 2026-09-07 20:41:43 UTC</div>
+
+<nav class="profile-nav"><a href="#momentum_screen">momentum_screen</a><a href="#pullback_screen">pullback_screen</a><a href="#breakout_watch">breakout_watch</a></nav>
+
+    <section class="card" id="momentum_screen">
+      <h2>momentum_screen</h2>
+
+      <div class="section-label">Today's results (3)</div>
+      <div class="rows">
+    <details class="row">
+      <summary>
+        <span class="col-rank">#1</span>
+        <span class="col-symbol">NVDA</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:100.0%"></span></span>
+          <span class="score-value">1.000</span>
+        </span>
+        <span class="col-close">$230.36</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.75)">momentum 1.00</span><span class="chip" style="background: rgba(0,212,170,0.75)">trend 1.00</span><span class="chip" style="background: rgba(0,212,170,0.75)">volume_surge 1.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 28,402,981,249 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 230.36 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>trend</b> — passed TrendFilter: close 230.36 is above 50-day MA 210.57 (required above), 50-day MA rising (207.58 -&gt; 210.57, required rising)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>momentum</b> — passed MomentumFilter: 63-day return +12.32% (above threshold +3.00%)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volume_surge</b> — passed VolumeSurgeFilter: volume 134,946,800 is 1.06x its 20-day avg 127,435,950 (required &gt;= 1.00x)</li></ul>
+      </div>
+    </details>
+    <details class="row">
+      <summary>
+        <span class="col-rank">#2</span>
+        <span class="col-symbol">META</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:10.4%"></span></span>
+          <span class="score-value">0.104</span>
+        </span>
+        <span class="col-close">$616.77</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.15)">momentum 0.00</span><span class="chip" style="background: rgba(0,212,170,0.306)">trend 0.26</span><span class="chip" style="background: rgba(0,212,170,0.227)">volume_surge 0.13</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 9,216,990,115 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 616.77 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>trend</b> — passed TrendFilter: close 616.77 is above 50-day MA 595.49 (required above), 50-day MA rising (592.99 -&gt; 595.49, required rising)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>momentum</b> — passed MomentumFilter: 63-day return +4.01% (above threshold +3.00%)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volume_surge</b> — passed VolumeSurgeFilter: volume 15,942,700 is 1.01x its 20-day avg 15,769,815 (required &gt;= 1.00x)</li></ul>
+      </div>
+    </details>
+    <details class="row">
+      <summary>
+        <span class="col-rank">#3</span>
+        <span class="col-symbol">AAPL</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:0.6%"></span></span>
+          <span class="score-value">0.006</span>
+        </span>
+        <span class="col-close">$319.97</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.157)">momentum 0.01</span><span class="chip" style="background: rgba(0,212,170,0.15)">trend 0.00</span><span class="chip" style="background: rgba(0,212,170,0.15)">volume_surge 0.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 12,423,340,745 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 319.97 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>trend</b> — passed TrendFilter: close 319.97 is above 50-day MA 315.15 (required above), 50-day MA rising (310.21 -&gt; 315.15, required rising)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>momentum</b> — passed MomentumFilter: 63-day return +4.11% (above threshold +3.00%)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volume_surge</b> — passed VolumeSurgeFilter: volume 39,551,800 is 1.00x its 20-day avg 39,397,355 (required &gt;= 1.00x)</li></ul>
+      </div>
+    </details></div>
+      
+
+      <div class="section-label">Changes since last run</div>
+      <div class="changes"><p class="muted">No prior run yet to compare against.</p></div>
+
+      <div class="section-label">Recent history (last 1 runs)</div>
+      <div class="history-bars"><div class="history-bar" style="height:100%" title="Sep 07, 20:41 UTC: 3 candidate(s)"></div></div>
+    </section>
+    <section class="card" id="pullback_screen">
+      <h2>pullback_screen</h2>
+
+      <div class="section-label">Today's results (2)</div>
+      <div class="rows">
+    <details class="row">
+      <summary>
+        <span class="col-rank">#1</span>
+        <span class="col-symbol">AMZN</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:65.0%"></span></span>
+          <span class="score-value">0.650</span>
+        </span>
+        <span class="col-close">$258.51</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.15)">momentum 0.00</span><span class="chip" style="background: rgba(0,212,170,0.75)">trend 1.00</span><span class="chip" style="background: rgba(0,212,170,0.75)">proximity 1.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 8,581,308,314 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 258.51 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>trend</b> — passed TrendFilter: close 258.51 is above 200-day MA 239.12 (required above)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>momentum</b> — passed MomentumFilter: 10-day return -0.05% (below threshold +0.00%)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>proximity</b> — passed ProximityFilter: close 258.51 is 1.41% below SMA20 262.20 (band 3.00%, side any)</li></ul>
+      </div>
+    </details>
+    <details class="row">
+      <summary>
+        <span class="col-rank">#2</span>
+        <span class="col-symbol">GOOGL</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:35.0%"></span></span>
+          <span class="score-value">0.350</span>
+        </span>
+        <span class="col-close">$338.46</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.75)">momentum 1.00</span><span class="chip" style="background: rgba(0,212,170,0.15)">trend 0.00</span><span class="chip" style="background: rgba(0,212,170,0.15)">proximity 0.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 7,638,485,461 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 338.46 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>trend</b> — passed TrendFilter: close 338.46 is above 200-day MA 335.94 (required above)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>momentum</b> — passed MomentumFilter: 10-day return -1.84% (below threshold +0.00%)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>proximity</b> — passed ProximityFilter: close 338.46 is 1.50% below SMA20 343.61 (band 3.00%, side any)</li></ul>
+      </div>
+    </details></div>
+      
+
+      <div class="section-label">Changes since last run</div>
+      <div class="changes"><p class="muted">No prior run yet to compare against.</p></div>
+
+      <div class="section-label">Recent history (last 1 runs)</div>
+      <div class="history-bars"><div class="history-bar" style="height:100%" title="Sep 07, 20:41 UTC: 2 candidate(s)"></div></div>
+    </section>
+    <section class="card" id="breakout_watch">
+      <h2>breakout_watch</h2>
+
+      <div class="section-label">Today's results (2)</div>
+      <div class="rows">
+    <details class="row">
+      <summary>
+        <span class="col-rank">#1</span>
+        <span class="col-symbol">JPM</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:60.0%"></span></span>
+          <span class="score-value">0.600</span>
+        </span>
+        <span class="col-close">$358.64</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.15)">volume_surge 0.00</span><span class="chip" style="background: rgba(0,212,170,0.75)">proximity 1.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 1,953,236,691 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 358.64 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>proximity</b> — passed ProximityFilter: close 358.64 is 2.14% below 20-day high 366.50 (band 3.00%, side any)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volatility</b> — passed VolatilityFilter: 14-day ATR 1.60% of price within configured band</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volume_surge</b> — passed VolumeSurgeFilter: volume 4,873,500 is 0.90x its 20-day avg 5,441,240 (required &lt;= 0.90x)</li></ul>
+      </div>
+    </details>
+    <details class="row">
+      <summary>
+        <span class="col-rank">#2</span>
+        <span class="col-symbol">V</span>
+        <span class="col-score">
+          <span class="bar-track"><span class="bar-fill" style="width:40.0%"></span></span>
+          <span class="score-value">0.400</span>
+        </span>
+        <span class="col-close">$375.07</span>
+      </summary>
+      <div class="detail">
+        <div class="chips"><span class="chip" style="background: rgba(0,212,170,0.75)">volume_surge 1.00</span><span class="chip" style="background: rgba(0,212,170,0.15)">proximity 0.00</span></div>
+        <ul class="filters"><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>liquidity</b> — passed LiquidityFilter: avg dollar volume 2,455,040,308 over 20d &gt;= min 10,000,000</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>price_range</b> — passed PriceRangeFilter: close 375.07 within [5.00, +inf]</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>proximity</b> — passed ProximityFilter: close 375.07 is 2.72% below 20-day high 385.57 (band 3.00%, side any)</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volatility</b> — passed VolatilityFilter: 14-day ATR 1.68% of price within configured band</li><li class="filter-pass"><span class="filter-icon">&#10003;</span> <b>volume_surge</b> — passed VolumeSurgeFilter: volume 4,645,100 is 0.70x its 20-day avg 6,644,215 (required &lt;= 0.90x)</li></ul>
+      </div>
+    </details></div>
+      
+
+      <div class="section-label">Changes since last run</div>
+      <div class="changes"><p class="muted">No prior run yet to compare against.</p></div>
+
+      <div class="section-label">Recent history (last 1 runs)</div>
+      <div class="history-bars"><div class="history-bar" style="height:100%" title="Sep 07, 20:41 UTC: 2 candidate(s)"></div></div>
+    </section>
 <footer>
   <div class="disclaimer">This screener finds candidates by fixed rules. It does not know news, context, or whether a rule stopped making sense. Candidates feed a research process; they are not signals.</div>
   <div class="footer-meta">Regenerated automatically at the end of every run &mdash; see DEPLOYMENT.md.</div>
