@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Screener Dashboard</title>
+<style>
+  :root {
+    --bg: #1A1F2E;
+    --panel: #232A3D;
+    --panel-border: #2E3650;
+    --teal: #00D4AA;
+    --amber: #F5B642;
+    --red: #EF6461;
+    --text: #E6E9F0;
+    --text-muted: #8B93A7;
+    --track: #161B28;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body { padding: 32px clamp(16px, 5vw, 48px); }
+  h1 { color: var(--teal); margin: 0 0 4px 0; font-size: 26px; }
+  .meta { color: var(--text-muted); font-size: 13px; margin-bottom: 8px; }
+  .banner-failed {
+    background: rgba(239,72,77,0.12);
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+  .profile-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 28px 0; }
+  .profile-nav a {
+    color: var(--teal);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .profile-nav a:hover { border-color: var(--teal); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+  }
+  .card h2 { color: var(--teal); margin: 0 0 16px 0; font-size: 19px; }
+  .section-label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    margin: 20px 0 10px 0;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+  .status-failed {
+    background: rgba(239,72,77,0.12);
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+  .muted { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+  .quality-box {
+    background: var(--track);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  ul.quality-list { margin: 0; padding: 0 0 0 18px; font-size: 13px; color: var(--text-muted); }
+  ul.quality-list li { line-height: 1.5; }
+  ul.quality-list b { color: var(--text); }
+
+  .rows { display: flex; flex-direction: column; gap: 8px; overflow-x: auto; }
+  details.row {
+    background: var(--track);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 4px 14px;
+  }
+  details.row[open] { border-color: var(--teal); }
+  details.row summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    min-width: 560px;
+  }
+  details.row summary::-webkit-details-marker { display: none; }
+  details.row summary::before {
+    content: "\25B8";
+    color: var(--text-muted);
+    width: 12px;
+    transition: transform 0.15s ease;
+    flex: none;
+  }
+  details.row[open] summary::before { transform: rotate(90deg); }
+  .col-rank { color: var(--text-muted); width: 34px; flex: none; font-variant-numeric: tabular-nums; }
+  .col-symbol { width: 130px; flex: none; font-weight: 600; }
+  .col-score { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; }
+  .col-close { color: var(--text-muted); width: 90px; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar-track { background: #0E121C; border-radius: 4px; height: 6px; width: 120px; overflow: hidden; flex: none; }
+  .bar-fill { background: var(--teal); height: 100%; display: block; }
+  .score-value { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 13px; width: 48px; }
+
+  .detail { padding: 4px 0 14px 26px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .chip { border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--text); }
+  ul.filters { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  ul.filters li { font-size: 13px; line-height: 1.4; }
+  .filter-icon { display: inline-block; width: 14px; }
+  .filter-pass { color: var(--text); }
+  .filter-pass .filter-icon { color: var(--teal); }
+  .filter-fail { color: var(--text-muted); }
+  .filter-fail .filter-icon { color: var(--red); }
+
+  .changes { display: flex; flex-direction: column; gap: 10px; }
+  .change-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .change-label { color: var(--text-muted); font-size: 12px; width: 110px; flex: none; }
+  .badge { border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+  .badge-new { background: var(--amber); color: #1A1F2E; }
+  .badge-dropped { background: rgba(239,72,77,0.15); color: var(--red); border: 1px solid rgba(239,72,77,0.4); }
+  .badge-move { background: rgba(0,212,170,0.12); color: var(--teal); border: 1px solid rgba(0,212,170,0.35); }
+  .badge-move.move-down { background: rgba(239,72,77,0.12); color: var(--red); border-color: rgba(239,72,77,0.35); }
+
+  .history-bars { display: flex; align-items: flex-end; gap: 5px; height: 64px; }
+  .history-bar { flex: 1 1 auto; max-width: 22px; background: var(--teal); border-radius: 3px 3px 0 0; min-height: 4px; }
+  .history-bar.failed { background: var(--red); }
+
+  footer { margin-top: 32px; }
+  .disclaimer {
+    border: 1px solid var(--panel-border);
+    border-left: 3px solid var(--amber);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--text);
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .footer-meta { color: var(--text-muted); font-size: 12px; }
+</style>
+
+</head>
+<body>
+<h1>Screener Dashboard</h1>
+<div class="meta">No automated run yet.</div>
+<section class="card">
+  <p class="muted">This page publishes the latest run of the screener automatically (see .github/workflows/screener.yml). It updates the first time the scheduled workflow actually fires during market hours (weekdays, ~30 min before the open and ~30 min after the close, America/New_York) &mdash; check back after that, or trigger a run manually from the repo's Actions tab.</p>
+</section>
+<footer>
+  <div class="disclaimer">This screener finds candidates by fixed rules. It does not know news, context, or whether a rule stopped making sense. Candidates feed a research process; they are not signals.</div>
+  <div class="footer-meta">Regenerated automatically at the end of every run &mdash; see DEPLOYMENT.md.</div>
+</footer>
+</body>
+</html>

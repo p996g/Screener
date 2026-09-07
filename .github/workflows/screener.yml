@@ -54,11 +54,22 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: python main.py scheduled-run
 
+      # GitHub Pages (see repo Settings -> Pages) serves index.html at the
+      # repo root as the site's homepage — copy today's dashboard there so
+      # https://<user>.github.io/<repo>/ always shows the latest run. A
+      # no-op run (nothing due) leaves output/dashboard.html untouched, so
+      # this is a no-op too in that case.
+      - name: Publish dashboard to GitHub Pages (index.html)
+        run: |
+          if [ -f output/dashboard.html ]; then
+            cp output/dashboard.html index.html
+          fi
+
       - name: Commit and push report history
         run: |
           git config user.name "screener-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add output/history output/*.csv
+          git add output/history output/*.csv index.html
           git diff --cached --quiet || git commit -m "Automated screener report ($(date -u +'%Y-%m-%d %H:%M UTC'))"
           git push
 
